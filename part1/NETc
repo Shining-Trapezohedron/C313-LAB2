@@ -5,10 +5,10 @@ bandwidth		= 56Kbps,
 messagerate             = 1000ms,
 propagationdelay        = 2500ms,
 
-minmessagesize		= 2000bytes
-maxmessagesize		= 2000bytes
+minmessagesize		= 2000bytes,
+maxmessagesize		= 2000bytes,
 
-probframecorrupt	= 0.5,
+probframecorrupt	= 1,
 
 host perth {
     x=100 y=50
