@@ -1,0 +1,28 @@
+compile			= "saw.c"
+
+bandwidth		= 56Kbps,
+
+messagerate             = 1000ms,
+propagationdelay        = 2500ms,
+
+
+host perth {
+    x=100 y=50
+    winx=0, winy=50
+    link to sydney {
+    }
+}
+
+host sydney {
+    east of perth
+    winx=550, winy=50
+    link to mac {
+    }
+ }
+
+host mac {
+     east of sydney
+     winx=660, winy=50
+     link to perth {
+     }
+}
