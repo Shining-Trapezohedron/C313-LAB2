@@ -8,11 +8,12 @@ propagationdelay        = 2500ms,
 minmessagesize		= 2000bytes,
 maxmessagesize		= 2000bytes,
 
-probframecorrupt	= 1,
+
 
 host perth {
     x=100 y=50
     winx=0, winy=50
+    probframecorrupt	= 1,
     link to sydney {
     }
 }

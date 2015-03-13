@@ -9,20 +9,17 @@ propagationdelay        = 2500ms,
 host perth {
     x=100 y=50
     winx=0, winy=50
-    link to sydney {
-    }
 }
 
 host sydney {
     east of perth
     winx=550, winy=50
-    link to mac {
-    }
  }
 
-host mac {
+router R1 {
      east of sydney
-     winx=660, winy=50
-     link to perth {
-     }
+     address = 10
+     winx = 300, winy = 200
+     link to perth
+     link to sydney
 }

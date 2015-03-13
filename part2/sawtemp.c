@@ -1,3 +1,4 @@
+//part 2 of lab 2
 #include <cnet.h>
 #include <stdlib.h>
 #include <string.h>
@@ -34,6 +35,8 @@ typedef struct {
     int          checksum;  	// checksum of the whole frame
     int          seq;       	// only ever 0 or 1
     MSG          msg;
+    int          hops;
+  CnetAddr     source,destination;
 } FRAME;
 
 #define FRAME_HEADER_SIZE  (sizeof(FRAME) - sizeof(MSG))
@@ -53,7 +56,7 @@ static void transmit_frame(MSG *msg, FRAMEKIND kind, size_t length, int seqno)
 {
     FRAME       f;
     int		link = 1;
-
+   f.hops      = 0;
     f.kind      = kind;
     f.seq       = seqno;
     f.checksum  = 0;
@@ -84,10 +87,11 @@ static void transmit_frame(MSG *msg, FRAMEKIND kind, size_t length, int seqno)
 
 static EVENT_HANDLER(application_ready)
 {
-    CnetAddr destaddr;
+  //CnetAddr destaddr;
+    FRAME f;
 
     lastlength  = sizeof(MSG);
-    CHECK(CNET_read_application(&destaddr, lastmsg, &lastlength));
+    CHECK(CNET_read_application(&f.destaddr, lastmsg, &lastlength));
     CNET_disable_application(ALLNODES);
 
     printf("down from application, seq=%d\n", nextframetosend);
@@ -104,68 +108,42 @@ static EVENT_HANDLER(physical_ready)
     len         = sizeof(FRAME);
     CHECK(CNET_read_physical(&link, &f, &len));
 
+    f.hops++;
+
     checksum    = f.checksum;
     f.checksum  = 0;
     if(CNET_ccitt((unsigned char *)&f, (int)len) != checksum) {
-      printf("\t\t\t\tBAD checksum - frame ignored\n");
-      return;           // bad checksum, ignore frame
+        printf("\t\t\t\tBAD checksum - frame ignored\n");
+        return;           // bad checksum, ignore frame
     }
 
-    if (nodeinfo.nodetype == NT_HOST) {
-      switch (f.kind) {
-      case DL_ACK :
+    if(f.destination == nodeinfo.address) //check
+    switch (f.kind) {
+    case DL_ACK :
         if(f.seq == ackexpected) {
-	  printf("\t\t\t\tACK received, seq=%d\n", f.seq);
-	  CNET_stop_timer(lasttimer);
-	  ackexpected = 1-ackexpected;
-	  CNET_enable_application(ALLNODES);
+            printf("\t\t\t\tACK received, seq=%d\n", f.seq);
+            CNET_stop_timer(lasttimer);
+            ackexpected = 1-ackexpected;
+            CNET_enable_application(ALLNODES);
         }
 	break;
-	
-      case DL_DATA :
+
+    case DL_DATA :
         printf("\t\t\t\tDATA received, seq=%d, ", f.seq);
         if(f.seq == frameexpected) {
-	  printf("up to application\n");
-	  len = f.len;
-	  CHECK(CNET_write_application(&f.msg, &len));
-	  frameexpected = 1-frameexpected;
+            printf("up to application\n");
+            len = f.len;
+            CHECK(CNET_write_application(&f.msg, &len));
+            frameexpected = 1-frameexpected;
         }
         else
-	  printf("ignored\n");
+            printf("ignored\n");
         transmit_frame(NULL, DL_ACK, 0, f.seq);
 	break;
-      }
     }
-    else {
-      //Implement stop and wait between routers 
-      //Send the message from left to right
-      printf("%d\n" , nodeinfo.nlinks);
-
-      switch (f.kind) {
-      case DL_ACK :
-        if(f.seq == ackexpected) {
-          printf("\t\t\t\tACK received, seq=%d\n", f.seq);
-          CNET_stop_timer(lasttimer);
-          ackexpected = 1-ackexpected;
-          CNET_enable_application(ALLNODES);
-        }
-        break;
-
-      case DL_DATA :
-        printf("\t\t\t\tDATA received, seq=%d, ", f.seq);
-        if(f.seq == frameexpected) {
-          printf("up to application\n");
-          len = f.len;
-          CHECK(CNET_write_physical(2, &f, &len));
-          frameexpected = 1-frameexpected;
-        }
-        else
-          printf("ignored\n");
-        transmit_frame(NULL, DL_ACK, 0, f.seq);
-        break;
+    else
+      {
       }
-
-    }
 }
 
 static EVENT_HANDLER(timeouts)
@@ -183,13 +161,13 @@ static EVENT_HANDLER(showstate)
 
 EVENT_HANDLER(reboot_node)
 {
-  /* if(nodeinfo.nodenumber > 1) {
+  /*if(nodeinfo.nodenumber > 1) {
 	fprintf(stderr,"This is not a 2-node network!\n");
 	exit(1);
 	}*/
 
     lastmsg	= calloc(1, sizeof(MSG));
-    if (nodeinfo.nodetype == NT_HOST) {
+
     CHECK(CNET_set_handler( EV_APPLICATIONREADY, application_ready, 0));
     CHECK(CNET_set_handler( EV_PHYSICALREADY,    physical_ready, 0));
     CHECK(CNET_set_handler( EV_TIMER1,           timeouts, 0));
@@ -199,13 +177,4 @@ EVENT_HANDLER(reboot_node)
 
     if(nodeinfo.nodenumber == 0)
 	CNET_enable_application(ALLNODES);
-    }
-    else {
-      CHECK(CNET_set_handler( EV_PHYSICALREADY,    physical_ready, 0));
-      CHECK(CNET_set_handler( EV_TIMER1,           timeouts, 0));
-      CHECK(CNET_set_handler( EV_DEBUG0,           showstate, 0));
-
-      CHECK(CNET_set_debug_string( EV_DEBUG0, "State"));
-
-    }
 }
