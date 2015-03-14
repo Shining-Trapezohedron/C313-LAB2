@@ -1,40 +1,36 @@
-compile			= "saw.c"
+compile = "saw.c"
 
-bandwidth		= 56Kbps,
+bandwidth = 56Kbps,
+messagerate = 1000ms,
+propagationdelay = 2500ms,
 
-messagerate             = 1000ms,
-propagationdelay        = 2500ms,
+minmessagesize = 2000bytes,
+maxmessagesize = 4000bytes,
 
+probframeloss = 4,
+probframecorrupt = 4,
 
-host perth {
-    x=100 y=50
-    winx=0, winy=50
+host Perth {
+    x=100, y=300,
+    address=10
+    link to r1
 }
-
-router R1 {
-     address = 10
-     east of perth
-     winx = 300, winy = 200
-     link to perth
-     link to R2
+router r1 {
+    east of Perth
+    address=11
+    link to r2
 }
-
-router R2 {
-       address = 11
-       east of R1
-       winx = 400, winy = 200
-       link to R1
-       link to R3
+router r2 {
+    east of r1
+    address=12
+    link to r3
 }
-
-router R3 {
-       address = 12
-       east of R2
-       winx = 500, winy = 200
-       link to R2
-       link to sydney
+router r3 {
+    east of r2
+    address = 13
+    link to Sydney
 }
-host sydney {
-    east of R3
-    winx=550, winy=50
- }
+host Sydney {
+     east of r3
+     address = 14
+}
